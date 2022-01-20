@@ -5,7 +5,7 @@ import requests
 import pickle
 import xarray
 import pandas as pd
-import multiprocessing
+from multiprocessing import Pool
 
 def parse_dates(years, months):
     names = ['years', 'months']
@@ -46,8 +46,8 @@ class HsTp2Power:
     def launch(self, year, month, geo, res, dec=2):
 
         self.check_gribs(year, month, geo, res)
-        gribs = self.load_gribs(year, month, geo, res)
-        power_array = self.get_power_from_gribs(gribs)
+        self.load_gribs(year, month, geo, res)
+        power_array = self.get_power_from_gribs()
         self.save_power(power_array)
         pass
     
@@ -96,23 +96,22 @@ class HsTp2Power:
 
 
     def load_gribs(self, year, month, geo, res, dec=2):
-        gribs = {}
+        self.gribs = {}
         self.year = year
         self.month = month
         self.geo = geo
         self.res = res
         for var in [('hs', 'swh'), ('tp', 'perpw')]:            
             url = 'multi_reanal.%s_%s_ext.%s.%s.grb2' % (geo, res, var[0], year + month)
-            gribs[var[0]] = xarray.open_dataset(self.paths['gribs'] + url, engine='cfgrib')
+            self.gribs[var[0]] = xarray.open_dataset(self.paths['gribs'] + url, engine='cfgrib')
             if var[0] == 'hs': 
-                self.time = gribs[var[0]].valid_time.data
-                self.lat = gribs[var[0]].latitude.data
-                self.lon = gribs[var[0]].longitude.data
-            gribs[var[0]] = getattr(gribs[var[0]] * (10 ** dec), var[1]).data.astype(np.float32)
+                self.time = self.gribs[var[0]].valid_time.data
+                self.lat = self.gribs[var[0]].latitude.data
+                self.lon = self.gribs[var[0]].longitude.data
+            self.gribs[var[0]] = getattr(self.gribs[var[0]] * (10 ** dec), var[1]).data.astype(np.float32)
             if var[0] == 'tp': 
-                gribs[var[0]] = np.nan_to_num(gribs[var[0]], nan=0)
+                self.gribs[var[0]] = np.nan_to_num(self.gribs[var[0]], nan=0)
             
-        return gribs
 
 
     def get_grib(self, year, month, geo, res, var):
@@ -124,22 +123,23 @@ class HsTp2Power:
         open(self.paths['gribs'] + url.split('/')[-1], 'wb').write(resp.content)
 
 
-    def get_power_from_gribs(self, gribs):
-        y_max, x_max = gribs['hs'].shape[1:3]
+    def get_power_from_gribs(self):
+        y_max, x_max = self.gribs['hs'].shape[1:3]
         
-        power_array = np.full((len(gribs['hs']), y_max, x_max), np.nan).astype(np.float32)
-        nan_slice = np.full((y_max, x_max), np.nan).astype(np.float32)
+        self.power_array = np.full((len(self.gribs['hs']), y_max, x_max), np.nan).astype(np.float32)
+        self.nan_slice = np.full((y_max, x_max), np.nan).astype(np.float32)
         
-        for t in range(len(power_array)):
-            power_array[t] = self.process_gribs_slice(gribs, t, nan_slice)
-            
-        return power_array     
+        #with Pool(5) as p:
+        #    p.map(self.process_gribs_slice, range(len(self.power_array)))
+        for t in range(len(self.power_array)):
+            self.process_gribs_slice(t)
+
         
 
-    def process_gribs_slice(self, gribs, t, power_slice):
+    def process_gribs_slice(self, t):
         t_1 = time.time()
-        for y in range(len(power_slice)):
-            row_nans = np.isnan(gribs['hs'][t, y])
+        for y in range(len(self.nan_slice)):
+            row_nans = np.isnan(self.gribs['hs'][t, y])
             if row_nans.all():
                 continue
                             
@@ -147,9 +147,9 @@ class HsTp2Power:
                 if x_nan:
                     continue
                 
-                power_slice[y, x] = self.power_dic[int(gribs['tp'][t, y, x]), int(gribs['hs'][t, y, x])]
-        print(self.year, self.month, time.time() - t_1)
-        return power_slice
+                self.power_array[t, y, x] = self.power_dic[int(self.gribs['tp'][t, y, x]), int(self.gribs['hs'][t, y, x])]
+        print(self.year, self.month, t, np.round(time.time() - t_1, 3))
+        
 
 
     def save_power(self, power_array):
@@ -177,7 +177,7 @@ class HsTp2Power:
 
 
 if __name__ == "__main__":
-    years = (2009, 2000, -1)
+    years = (2007, 2000, -1)
     months = (1,12)
     power_file = 'power_matrix.csv'
 
