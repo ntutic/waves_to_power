@@ -5,23 +5,8 @@ import requests
 import pickle
 import xarray
 import pandas as pd
-
-
-def parse_dates(years, months):
-    names = ['years', 'months']
-    dic = {'years': '', 'months': ''}
-    for i, dates in enumerate([years, months]):
-
-        if isinstance(dates, tuple):
-            dic[names[i]] = list(map(str, range(*dates)))
-            dic[names[i]] = [x.zfill(2) for x in dic[names[i]]]
-        elif isinstance(dates, list):
-            for date_i, date in enumerate(dates):
-                dates[date_i] = str(date).zfill(2)
-        else:
-             dic[names[i]] = [str(dates).zfill(2)]
-
-    return dic['years'], dic['months']
+import sys
+from tools import parse_dates
 
 
 class HsTp2Power:
@@ -204,6 +189,8 @@ class HsTp2Power:
                     if x > self.max_hs:
                         dic['max_hs'] = x + 2
                     self.load_power_dic(**dic)
+                except IndexError:
+                    print('IndexError (t, x, y):', t, x, y)
         print(self.year, self.month, t, np.round(time.time() - t_1, 3))
       
 
@@ -232,15 +219,24 @@ class HsTp2Power:
 
 
 if __name__ == "__main__":
-    #if len(sys.argv) > 1:
-    if True:
-        #years = sys.argv[1]
-        years = '2001,2005'
+    if len(sys.argv) == 3:
+        years = sys.argv[1]
         if len(years.split(',')) > 1:
             years = (int(years.split(',')[0]), int(years.split(',')[1]))
+        months = sys.argv[2]
+        if len(months.split(',')) > 1:
+            months = (int(months.split(',')[0]), int(months.split(',')[1]))
+    elif len(sys.argv) == 2:
+        years = sys.argv[1]
+        if len(years.split(',')) > 1:
+            years = (int(years.split(',')[0]), int(years.split(',')[1]))
+        months = (1, 13)
+    elif len(sys.argv) == 1:
+        print('As YYYY or YYYY_min,YY_max')
+        years = input('Years: ')
+        months = input('Months: ')
     else:
-        years = (2008, 2000, -1)
-    months = (1,13)
+        assert False, 'ERROR: Python launchable, too many arguments provided.'
     power_file = 'power_matrix.csv'
 
     HsTp2Power(years, months, power_file)

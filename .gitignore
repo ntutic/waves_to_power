@@ -2,5 +2,6 @@ data/gribs/
 data/topo_glo_30m.nc
 data/netcdf/
 data/power/
+data/out/
 
 .vscode/launch.json
