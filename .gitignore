@@ -1,4 +1,6 @@
 data/gribs/
 data/topo_glo_30m.nc
-data/netcdf/multi_reanal.partition.glo_30m.200912.nc
+data/netcdf/
 data/power/
+
+.vscode/launch.json
