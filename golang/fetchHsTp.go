@@ -14,6 +14,7 @@ func FetchHsTp(dataPath, resolution, year, month string) error {
 	for _, stat := range stats {
 		file := "multi_reanal.glo_" + resolution + "_ext." + stat + "." + yearMonth + ".grb2"
 		filePath := filepath.Join(dataPath, file)
+		filePath, _ = filepath.Abs(filePath)
 
 		matches, err = filepath.Glob(filePath)
 
@@ -25,7 +26,7 @@ func FetchHsTp(dataPath, resolution, year, month string) error {
 			}
 			fmt.Println("Downloaded: " + file)
 		} else {
-			fmt.Println("Found: " + matches[0])
+			fmt.Println("     Found: " + file)
 		}
 
 	}
