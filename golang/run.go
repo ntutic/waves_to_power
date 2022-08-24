@@ -1,7 +1,7 @@
 package main
 
 func main() {
-	dataPath := "data/"
+	dataPath := "data/gribs/"
 	resolution := "30m"
 	year := "1979"
 	month := "01"
