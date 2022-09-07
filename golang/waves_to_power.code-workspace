@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../go/pkg/mod/github.com/nilsmagnus/grib@v1.2.8"
+		},
+		{
+			"path": "../../learn-go"
+		}
+	],
+	"settings": {
+		"makefile.extensionOutputFolder": "./.vscode"
+	}
+}

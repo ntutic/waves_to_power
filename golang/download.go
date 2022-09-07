@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -8,6 +9,8 @@ import (
 
 func Download(filepath string, url string) error {
 	resp, err := http.Get(url)
+	fmt.Println(11)
+	fmt.Println(resp)
 	if err != nil {
 		return err
 	}
